@@ -3,11 +3,12 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Message, VibeMode, VIBE_CONFIGS, Attachment } from '../types';
-import { User, Bot, Terminal, FileText, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { User, Bot, Terminal, FileText, Image as ImageIcon, ChevronDown, ChevronUp, BookmarkPlus, Check } from 'lucide-react';
 
 interface ChatMessageProps {
   message: Message;
   vibe: VibeMode;
+  onSaveSnippet?: (code: string, language: string) => void;
 }
 
 const AttachmentView: React.FC<{ attachment: Attachment }> = ({ attachment }) => {
@@ -57,9 +58,40 @@ const AttachmentView: React.FC<{ attachment: Attachment }> = ({ attachment }) =>
   );
 };
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ message, vibe }) => {
+const ChatMessage: React.FC<ChatMessageProps> = ({ message, vibe, onSaveSnippet }) => {
   const isUser = message.role === 'user';
   const config = VIBE_CONFIGS[vibe];
+
+  // Helper for copy/save button state
+  const CodeHeader = ({ language, code }: { language: string, code: string }) => {
+    const [saved, setSaved] = useState(false);
+
+    const handleSave = () => {
+      if (onSaveSnippet) {
+        onSaveSnippet(code, language);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    };
+
+    return (
+      <div className="bg-slate-800 px-3 py-1.5 text-xs text-slate-400 font-mono border-b border-slate-700 flex justify-between items-center">
+        <span>{language}</span>
+        <div className="flex items-center gap-2">
+           {!isUser && onSaveSnippet && (
+             <button 
+               onClick={handleSave}
+               className="flex items-center gap-1 hover:text-emerald-400 transition-colors"
+               title="Lưu vào thư viện"
+             >
+               {saved ? <Check size={12} className="text-emerald-400" /> : <BookmarkPlus size={12} />}
+               <span className="text-[10px]">{saved ? 'Đã lưu' : 'Lưu'}</span>
+             </button>
+           )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className={`flex w-full mb-6 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -95,20 +127,19 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, vibe }) => {
               components={{
                 code({ node, inline, className, children, ...props }: any) {
                   const match = /language-(\w+)/.exec(className || '');
+                  const codeString = String(children).replace(/\n$/, '');
+                  
                   return !inline && match ? (
                     <div className="rounded-lg overflow-hidden my-3 border border-slate-700 shadow-md">
-                      <div className="bg-slate-800 px-3 py-1 text-xs text-slate-400 font-mono border-b border-slate-700 flex justify-between items-center">
-                        <span>{match[1]}</span>
-                        <span className="opacity-50 text-[10px]">VIBE CODE</span>
-                      </div>
+                      <CodeHeader language={match[1]} code={codeString} />
                       <SyntaxHighlighter
                         {...props}
                         style={vscDarkPlus}
                         language={match[1]}
                         PreTag="div"
-                        customStyle={{ margin: 0, borderRadius: 0, padding: '1rem', backgroundColor: '#0f172a' }} // vscDarkPlus bg match
+                        customStyle={{ margin: 0, borderRadius: 0, padding: '1rem', backgroundColor: '#0f172a' }} 
                       >
-                        {String(children).replace(/\n$/, '')}
+                        {codeString}
                       </SyntaxHighlighter>
                     </div>
                   ) : (

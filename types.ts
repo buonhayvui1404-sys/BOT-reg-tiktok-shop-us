@@ -12,6 +12,14 @@ export interface Attachment {
   fileName: string;
 }
 
+export interface Snippet {
+  id: string;
+  title: string;
+  code: string;
+  language: string;
+  timestamp: number;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'model';
